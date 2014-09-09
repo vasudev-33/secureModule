@@ -48,7 +48,7 @@ int read_file(const char *filename ,  char *buf , int len , int offset)
  	bytes  =  filp->f_op->read(filp ,  buf , len , &filp->f_pos);
   set_fs(oldfs);
   
-	printk("Buff: %s" , (char *)buf);
+	printk("Buff: %s" , buf);
 	/* close the file */
 cleanup:
 	printk("Inside cleanup: \n");
@@ -66,37 +66,69 @@ cleanup:
 
 void read_policy_file(const char *filename)
 {
-	char *buf=NULL;
+	//char *buf=NULL;
+	char buf1[4096];
+	char *buf=&buf1;
 	int offset=0;
 	int read_bytes=0;
 	char *line=NULL;
 	unsigned int uid;
 	char *role=NULL;
-	unsigned int access;
+	unsigned int can_read;
+	unsigned int can_write;
+	unsigned int can_execute;
 	char *part=NULL;
+	int count=0;
 	
-	
-	buf = kmalloc(PAGE_SIZE ,  GFP_USER);
-	read_bytes=read_file(filename,buf,PAGE_SIZE,offset);
+	//buf = kmalloc(PAGE_SIZE ,  GFP_USER);
+	read_bytes=read_file(filename,buf1,PAGE_SIZE,offset);
 	
 	while((line=strsep(&buf, "\n")))
 	{
+		if(*line=='\0')
+			break;
+		count=0;
+		printk("%s\n",line);
 		while((part=strsep(&line, ",")))
 		{
-			printk("%s ",part);
-			kstrtouint((const char *)part, 10, &uid);
-			printk("%d ",uid);
+			//if(part=="\n")
+			//	break;
+			//printk("%s ",part);
+			if(count==0)
+			{
+				kstrtouint((const char *)part, 10, &uid);
+				printk("%d ",uid);
+			}
+			else if(count==1)
+			{
+				role=part;
+			}
+			else if(count==2)
+			{
+				kstrtouint((const char *)part, 10, &can_read);
+				printk("%d ",can_read);
+			}
+			else if(count==3)
+			{
+				kstrtouint((const char *)part, 10, &can_write);
+				printk("%d ",can_write);
+			}
+			else if(count==4)
+			{
+				kstrtouint((const char *)part, 10, &can_execute);
+				printk("%d ",can_execute);
+			}
+			count++;
 		}		
 		printk("\n");
 	}	
-	kfree(buf);
-
+	//if(buf!=NULL)
+	//	kfree(buf);
 }
-
 static int __init read_policy_init(void)
 {
     printk(KERN_INFO "Hello world!\n");
-    read_policy_file("/usr/src/policy_file");
+    read_policy_file("/usr/src/linux-3.14.17/read_policy/policy_file");
     return 0;    // Non-zero return means that the module couldn't be loaded.
 }
 
